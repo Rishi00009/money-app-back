@@ -1,5 +1,7 @@
 const express = require('express');
 const path = require('path');
+const mongoose = require('mongoose'); // Assuming MongoDB based on your 'models' folder
+require('dotenv').config(); // Load .env for local testing
 
 const authRoutes = require('./routes/authRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
@@ -7,9 +9,18 @@ const transactionRoutes = require('./routes/transactionRoutes');
 const app = express();
 
 // 1. DATABASE CONNECTION
-// If you have DB connection code, paste it here or ensure the logic is active.
-// For example: if using mongoose, it would be mongoose.connect(process.env.MONGO_URI)
-console.log("Initializing Server Handlers...");
+// This is the most likely cause of a 500 error.
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URI);
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+  } catch (error) {
+    console.error(`Database Error: ${error.message}`);
+    // Don't exit on production so the health check still works
+  }
+};
+
+connectDB();
 
 // 2. BULLETPROOF CORS MIDDLEWARE
 const allowedOrigins = [
@@ -45,7 +56,18 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 
-// 6. PORT
+// 6. GLOBAL ERROR HANDLER
+// This prevents the server from crashing and returns a JSON error instead of a 500 HTML page
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+    error: process.env.NODE_ENV === 'development' ? err.message : {}
+  });
+});
+
+// 7. PORT
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server successfully deployed on port ${PORT}`);
