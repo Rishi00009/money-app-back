@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 
 const authRoutes = require('./routes/authRoutes');
-const transactionRoutes = require('./routes/transactionsRoutes');
+const transactionRoutes = require('./routes/transactionRoutes');
 
 const app = express();
 
