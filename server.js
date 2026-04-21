@@ -1,43 +1,47 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
+const path = require('path');
+// Import your database connection and routes
+const connectDB = require('./config/db'); // Ensure this path matches your structure
+const authRoutes = require('./routes/auth');
+const transactionRoutes = require('./routes/transactions');
 
 const app = express();
-app.use(express.json());
-const cors = require('cors');
 
+// 1. DATABASE CONNECTION
+connectDB();
+
+// 2. CORS CONFIGURATION
+// This allows your Netlify frontend to communicate with this Render backend
 const corsOptions = {
-  // 1. Put your actual Vercel URL here (no trailing slash)
-  origin: 'https://money-app-rishi.vercel.app', 
+  origin: [
+    'http://localhost:5173', 
+    'https://rishi-money-management-app.netlify.app'
+  ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type", 
-    "Authorization", 
-    "x-auth-token", 
-    "Accept"
-  ],
+  allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"]
 };
 
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle Pre-flight requests
 
-// Handle the Preflight OPTIONS request manually if standard CORS fails
-app.options('*', cors(corsOptions));
+// 3. BODY PARSING MIDDLEWARE
+// Increased limit to 10mb to handle Rishi's profile picture uploads
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected Successfully"))
-  .catch(err => console.error("❌ Connection Error:", err));
+// 4. HEALTH CHECK ROUTE
+app.get('/', (req, res) => {
+  res.send('Money App Backend is Running... 🚀');
+});
 
-// --- LINK ALL ROUTES ---
-// This handles login and registration
-app.use('/api/auth', require('./routes/authRoutes')); 
+// 5. API ROUTES
+app.use('/api/auth', authRoutes);
+app.use('/api/transactions', transactionRoutes);
 
-// This handles your money data
-app.use('/api/transactions', require('./routes/transactionRoutes')); 
-
+// 6. PORT CONFIGURATION
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server successfully deployed on port ${PORT}`);
+});
