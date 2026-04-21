@@ -1,8 +1,8 @@
 const express = require('express');
 const path = require('path');
 
-const authRoutes = require('./routes/auth');
-const transactionRoutes = require('./routes/transactions');
+const authRoutes = require('./routes/authRoutes');
+const transactionRoutes = require('./routes/transactionsRoutes');
 
 const app = express();
 
