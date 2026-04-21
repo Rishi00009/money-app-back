@@ -1,0 +1,2 @@
+# Create .gitignore in your backend folder
+echo "node_modules`n.env" > .gitignore
