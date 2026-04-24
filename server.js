@@ -22,55 +22,47 @@ connectDB();
 
 // 2. COMPLETE CORS MIDDLEWARE (FIXED FOR CAPACITOR)
 const allowedOrigins = [
-  'http://localhost:5173',           // Vite dev server
-  'http://localhost:3000',            // React dev server
-  'https://rishi-money-management-app.netlify.app', // Your deployed frontend
-  'capacitor://localhost',            // Capacitor Android (IMPORTANT!)
-  'https://localhost',                // Capacitor HTTPS (IMPORTANT!)
-  'http://localhost',                 // Capacitor HTTP fallback
-  'capacitor://localhost:5173',       // Capacitor with port
-  'https://localhost:5173',           // HTTPS localhost with port
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://rishi-money-management-app.netlify.app',
+  'capacitor://localhost',
+  'https://localhost',
+  'http://localhost',
+  'capacitor://localhost:5173',
+  'https://localhost:5173',
 ];
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
-  // Log incoming origins for debugging
   console.log('Incoming request from origin:', origin);
   console.log('Request method:', req.method);
   console.log('Request URL:', req.url);
   
-  // Enhanced origin checking for Capacitor
   let isAllowed = false;
   
   if (!origin) {
-    // Allow requests with no origin (mobile apps, curl, etc.)
     isAllowed = true;
   } else if (allowedOrigins.includes(origin)) {
     isAllowed = true;
   } else if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-    // Allow any localhost origin (for development)
     isAllowed = true;
   } else if (origin.includes('capacitor://')) {
-    // Allow any capacitor:// origin
     isAllowed = true;
   } else if (origin.includes('192.168')) {
-    // Allow local network IPs
     isAllowed = true;
   }
   
   if (isAllowed) {
-    // Set the specific origin or * for no origin
     res.setHeader('Access-Control-Allow-Origin', origin || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token, Accept, Origin');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+    res.setHeader('Access-Control-Max-Age', '86400');
   } else {
     console.log('❌ Blocked origin:', origin);
   }
 
-  // Handle preflight requests immediately
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -95,8 +87,8 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/transactions', transactionRoutes);
 
-// 6. 404 Handler for undefined routes
-app.use('*', (req, res) => {
+// 6. 404 HANDLER - FIXED (no '*' pattern)
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: `Route ${req.originalUrl} not found`
