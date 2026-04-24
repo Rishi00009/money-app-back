@@ -30,9 +30,13 @@ const allowedOrigins = [
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+  
+  // Logic: If it's a known origin, use it. If no origin (common in mobile apps), 
+  // we allow it for development.
+  if (!origin || allowedOrigins.includes(origin) || origin.includes('192.168')) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
   }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
