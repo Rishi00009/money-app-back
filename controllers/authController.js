@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 // --- 1. REGISTER USER ---
 exports.register = async (req, res) => {
   try {
-    const { name, username, password } = req.body;
+    const { name, username, password, banks } = req.body; // ✅ Added banks to destructuring
 
     if (!name || !username || !password) {
       return res.status(400).json({ msg: "Please enter all fields" });
@@ -21,7 +21,8 @@ exports.register = async (req, res) => {
       name, 
       username, 
       password: hashedPassword,
-      banks: ['Cash (Wallet)'] // Default bank on registration
+      banks: banks && banks.length > 0 ? banks : ['Cash (Wallet)'], // ✅ Use provided banks or default
+      cycleStartDay: 1
     });
     
     await user.save();
@@ -36,7 +37,13 @@ exports.register = async (req, res) => {
         if (err) throw err;
         res.json({ 
           token, 
-          user: { id: user._id, name: user.name, username: user.username } 
+          user: { 
+            id: user._id, 
+            name: user.name, 
+            username: user.username, 
+            cycleStartDay: user.cycleStartDay,
+            banks: user.banks  // ✅ Return banks
+          } 
         });
       }
     );
@@ -65,7 +72,13 @@ exports.login = async (req, res) => {
         if (err) throw err;
         res.json({ 
           token, 
-          user: { id: user._id, name: user.name, username: user.username } 
+          user: { 
+            id: user._id, 
+            name: user.name, 
+            username: user.username, 
+            cycleStartDay: user.cycleStartDay,
+            banks: user.banks  // ✅ Return banks
+          } 
         });
       }
     );
@@ -74,10 +87,9 @@ exports.login = async (req, res) => {
   }
 };
 
-// --- 3. GET CURRENT USER (For Profile Page) ---
+// --- 3. GET CURRENT USER ---
 exports.getMe = async (req, res) => {
   try {
-    // req.user.id comes from your authMiddleware
     const user = await User.findById(req.user.id).select('-password');
     res.json(user);
   } catch (err) {
@@ -85,13 +97,16 @@ exports.getMe = async (req, res) => {
   }
 };
 
-// --- 4. UPDATE PROFILE (Sync Logic) ---
+//4 In authController.js, update the updateProfile function:
+
 exports.updateProfile = async (req, res) => {
-  const { name, username, profilePic, banks, password } = req.body;
+  const { name, username, profilePic, banks, defaultBank, password, cycleStartDay } = req.body;
 
   try {
     let user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    console.log('Received update - defaultBank:', defaultBank);
 
     // Handle Username Uniqueness
     if (username && username !== user.username) {
@@ -106,8 +121,12 @@ exports.updateProfile = async (req, res) => {
     if (name) user.name = name;
     if (profilePic) user.profilePic = profilePic;
     if (banks) user.banks = banks;
+    if (defaultBank) user.defaultBank = defaultBank;
+    if (cycleStartDay !== undefined && cycleStartDay !== null) {
+      user.cycleStartDay = cycleStartDay;
+    }
 
-    // Handle Secure Password Update
+    // Handle Password Update
     if (password && password.trim() !== "") {
       if (password.length < 6) {
         return res.status(400).json({ msg: 'Password must be at least 6 characters' });
@@ -118,7 +137,6 @@ exports.updateProfile = async (req, res) => {
 
     await user.save();
     
-    // Return user without password
     const updatedUser = await User.findById(req.user.id).select('-password');
     res.json(updatedUser);
     
